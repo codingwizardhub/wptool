@@ -155,15 +155,14 @@ final class WP_Auto_Noindex {
                 $last_h = $last ? gmdate('Y-m-d H:i', $last) . ' UTC' : 'Never';
                 $grace_h = $grace ? gmdate('Y-m-d H:i', $grace) . ' UTC' : '-';
 
-                $check_url = wp_nonce_url(
-                    admin_url('admin-post.php?action=wpan_check_token'),
-                    'wpan_check_token'
-                );
+                $check_url = admin_url('admin-post.php');
+                $check_nonce = wp_nonce_field('wpan_check_token', '_wpnonce', true, false);
 
                 echo '<div style="max-width:680px;padding:12px;border:1px solid #ddd;background:#fff;border-radius:6px;">';
                 echo '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">';
                 echo '<strong>Status:</strong> <span style="padding:3px 8px;border-radius:999px;border:1px solid #ddd;background:#f8f8f8;">' . esc_html($badge) . '</span>';
                 echo '<span style="color:#666">Last check: ' . esc_html($last_h) . '</span>';
+				
                 echo '<span style="color:#666">Grace until: ' . esc_html($grace_h) . '</span>';
                 echo '</div>';
 
@@ -174,7 +173,11 @@ final class WP_Auto_Noindex {
                 );
 
                 echo '<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">';
-                echo '<a href="' . esc_url($check_url) . '" class="button">Check now</a>';
+                echo '<form method="post" action="' . esc_url($check_url) . '" style="margin:0;">';
+                echo $check_nonce;
+                echo '<input type="hidden" name="action" value="wpan_check_token">';
+                echo '<button type="submit" class="button">Check now</button>';
+                echo '</form>';
                 echo '<a href="https://wptools.co.uk/account" target="_blank" rel="noopener" class="button button-secondary">Manage subscription</a>';
                 echo '<span style="color:#666">Pro rules require an active subscription.</span>';
                 echo '</div>';
@@ -632,7 +635,8 @@ final class WP_Auto_Noindex {
     public static function handle_check_token(): void {
         if (!current_user_can('manage_options')) wp_die('Forbidden');
 
-        if (!isset($_GET['_wpnonce']) || !wp_verify_nonce((string)$_GET['_wpnonce'], 'wpan_check_token')) {
+        $nonce = (string)($_REQUEST['_wpnonce'] ?? '');
+        if ($nonce === '' || !wp_verify_nonce($nonce, 'wpan_check_token')) {
             wp_die('Invalid nonce');
         }
 
